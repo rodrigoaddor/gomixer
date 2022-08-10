@@ -67,19 +67,46 @@ func getIMMDevices(deviceType DeviceType) ([]*wca.IMMDevice, error) {
 	return devices, nil
 }
 
-func getIMMDevice(id string) (*wca.IMMDevice, error) {
-	devices, err := getIMMDevices(DeviceTypeAll)
+func getDefaultDevice(deviceType DeviceType) (*wca.IMMDevice, error) {
+	var pEnumerator *wca.IMMDeviceEnumerator
+	var device *wca.IMMDevice
+	var dataFlow uint32
+	var err error
+
+	dataFlow, err = deviceTypeToDataFlow(deviceType)
 	if err != nil {
 		return nil, err
 	}
 
-	var deviceId string
-	for _, device := range devices {
-		if err := device.GetId(&deviceId); err != nil {
+	if err := wca.CoCreateInstance(wca.CLSID_MMDeviceEnumerator, 0, ole.CLSCTX_ALL, wca.IID_IMMDeviceEnumerator, &pEnumerator); err != nil {
+		return nil, err
+	}
+
+	if err := pEnumerator.GetDefaultAudioEndpoint(dataFlow, wca.DEVICE_STATE_ACTIVE, &device); err != nil {
+		return nil, err
+	}
+
+	return device, nil
+}
+
+func getIMMDevice(id string) (*wca.IMMDevice, error) {
+	if id == "input" || id == "output" {
+		return getDefaultDevice(DeviceType(id))
+
+	} else {
+		devices, err := getIMMDevices(DeviceTypeAll)
+		if err != nil {
 			return nil, err
 		}
-		if deviceId == id {
-			return device, nil
+
+		var deviceId string
+		for _, device := range devices {
+			if err := device.GetId(&deviceId); err != nil {
+				return nil, err
+			}
+			if deviceId == id {
+				return device, nil
+			}
 		}
 	}
 
