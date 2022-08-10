@@ -23,6 +23,11 @@ type Device struct {
 	Mute        bool       `json:"mute"`
 }
 
+type DeviceUpdate struct {
+	Volume *float32 `json:"volume" binding:"min=0,max=1"`
+	Mute   *bool    `json:"mute"`
+}
+
 func getIMMDevices(deviceType DeviceType) ([]*wca.IMMDevice, error) {
 	var pEnumerator *wca.IMMDeviceEnumerator
 	var pCollection *wca.IMMDeviceCollection
@@ -136,6 +141,33 @@ func getDevice(immDevice *wca.IMMDevice) (Device, error) {
 	}
 
 	return device, nil
+}
+
+func updateDevice(id string, data DeviceUpdate) error {
+	var device *wca.IMMDevice
+	var volume *wca.IAudioEndpointVolume
+	var err error
+	if device, err = getIMMDevice(id); err != nil {
+		return err
+	}
+
+	if err := device.Activate(wca.IID_IAudioEndpointVolume, ole.CLSCTX_ALL, nil, &volume); err != nil {
+		return err
+	}
+
+	if data.Volume != nil {
+		if err := volume.SetMasterVolumeLevelScalar(*data.Volume, nil); err != nil {
+			return err
+		}
+	}
+
+	if data.Mute != nil {
+		if err := volume.SetMute(*data.Mute, nil); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func dataFlowToDeviceType(dataFlow uint32) (DeviceType, error) {

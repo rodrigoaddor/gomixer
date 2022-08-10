@@ -50,5 +50,29 @@ func InitRouter() *Engine {
 		c.JSON(http.StatusOK, device)
 	})
 
+	r.POST("/audio/:device", func(c *Context) {
+		deviceId := c.Param("device")
+
+		var device audio.Device
+		var data audio.DeviceUpdate
+		var err error
+
+		if err := c.Bind(&data); err != nil {
+			c.JSON(http.StatusInternalServerError, H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		if device, err = audio.UpdateDevice(deviceId, data); err != nil {
+			c.JSON(http.StatusInternalServerError, H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, device)
+	})
+
 	return r
 }
