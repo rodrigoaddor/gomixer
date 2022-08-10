@@ -20,6 +20,7 @@ type Device struct {
 	Description string     `json:"description"`
 	Volume      float32    `json:"volume"`
 	Type        DeviceType `json:"type"`
+	Mute        bool       `json:"mute"`
 }
 
 func getIMMDevices(deviceType DeviceType) ([]*wca.IMMDevice, error) {
@@ -128,6 +129,9 @@ func getDevice(immDevice *wca.IMMDevice) (Device, error) {
 	defer volume.Release()
 
 	if err := volume.GetMasterVolumeLevelScalar(&device.Volume); err != nil {
+		return device, err
+	}
+	if err := volume.GetMute(&device.Mute); err != nil {
 		return device, err
 	}
 
